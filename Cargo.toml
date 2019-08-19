@@ -1,0 +1,11 @@
+[package]
+name = "rust_alghs"
+version = "0.1.0"
+authors = ["vengeq <vengeq@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+num-traits = "0.2"
+rpds = "0.6.0"
+sorts ={path = "/sorts"}
+graph ={path = "/graph"}
