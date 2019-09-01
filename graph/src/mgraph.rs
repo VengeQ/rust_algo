@@ -2,6 +2,7 @@ use std::collections::{HashMap, BTreeMap, VecDeque};
 use std::fmt::Display;
 use std::fmt;
 use std::time::Duration;
+use std::cmp::{min, max};
 
 type Matrix = Vec<Vec<bool>>;
 
@@ -58,7 +59,7 @@ impl MGraph {
         }
     }
 
-    pub fn bfs(&mut self, process_vertex_early:fn(String)->()) {
+    pub fn bfs(&mut self, process_vertex_early: fn(String) -> ()) {
         #[derive(Clone, Debug, PartialEq, PartialOrd)]
         enum VertexType {
             Undiscovered,
@@ -72,16 +73,54 @@ impl MGraph {
         queue.push_front(vertex_keys[0].clone());
         statuses[*self.vertex.get(vertex_keys[0]).unwrap()] = Discovered;
         while !queue.is_empty() {
+            std::thread::sleep(Duration::from_secs(1));
             let current = queue.pop_back().unwrap();
             let key = *self.vertex.get(&current).unwrap();
             statuses[key] = Processed;
-            process_vertex_early(format!("{} was processed!",key));
+            process_vertex_early(format!("{} was processed!", key));
             let childs = &self.edges[key];
             for idx in 0..childs.len() {
                 if childs[idx] == true {
                     if !(statuses[idx] == Processed) {
+                        println!("processed edges: {} <-> {}", idx, current);
                         if !(statuses[idx] == Discovered) {
-                            println!("discovered_pairs: {} <-> {}", idx, current);
+                            println!("discovered vertex:  {}", idx);
+                            ///TODO Будет работать только если ключ равен номеру вершины
+                            queue.push_front(idx.to_string());
+                            statuses[idx] = Discovered;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn dfs(&mut self, process_vertex_early: fn(String) -> ()) {
+        #[derive(Clone, Debug, PartialEq, PartialOrd)]
+        enum VertexType {
+            Undiscovered,
+            Discovered,
+            Processed,
+        }
+        use VertexType::*;
+        let mut statuses: Vec<VertexType> = vec![VertexType::Undiscovered; self.vertex.len()];
+        let vertex_keys: &Vec<&String> = &self.vertex.keys().collect();
+        let mut queue = VecDeque::new();
+        queue.push_front(vertex_keys[0].clone());
+        statuses[*self.vertex.get(vertex_keys[0]).unwrap()] = Discovered;
+        while !queue.is_empty() {
+            std::thread::sleep(Duration::from_secs(1));
+            let current = queue.pop_front().unwrap();
+            let key = *self.vertex.get(&current).unwrap();
+            statuses[key] = Processed;
+            process_vertex_early(format!("{} was processed!", key));
+            let childs = &self.edges[key];
+            for idx in 0..childs.len() {
+                if childs[idx] == true {
+                    if !(statuses[idx] == Processed) {
+                        println!("processed edges: {} <-> {}", idx, key);
+                        if !(statuses[idx] == Discovered) {
+                            println!("discovered vertex:  {}", idx);
                             ///TODO Будет работать только если ключ равен номеру вершины
                             queue.push_front(idx.to_string());
                             statuses[idx] = Discovered;
@@ -156,11 +195,11 @@ mod tests {
         graph.connect("2".to_string(), "3".to_string());
         assert_eq!(graph.edges.get(2).unwrap().get(3).unwrap(), &true);
         assert_eq!(graph.edges.get(3).unwrap().get(2).unwrap(), &true);
-        println!("{}", graph);
+        //println!("{}", graph);
         graph.disconnect("3".to_string(), "2".to_string());
         assert_eq!(graph.edges.get(2).unwrap().get(3).unwrap(), &false);
         assert_eq!(graph.edges.get(3).unwrap().get(2).unwrap(), &false);
-        println!("{}", graph);
+        // println!("{}", graph);
     }
 
     #[test]
@@ -169,10 +208,25 @@ mod tests {
         use super::Matrix;
         let n = 5;
         let mut graph = MGraph::new_empty(n);
+        graph.connect("0".to_string(), "1".to_string());
         graph.connect("2".to_string(), "3".to_string());
         graph.connect("2".to_string(), "4".to_string());
         graph.connect("1".to_string(), "4".to_string());
         graph.connect("0".to_string(), "3".to_string());
-        graph.bfs(|str:String|println!("{}",str));
+        graph.bfs(|str: String| println!("{}", str));
+    }
+
+    #[test]
+    fn dfs_easy_test() {
+        use super::MGraph;
+        use super::Matrix;
+        let n = 5;
+        let mut graph = MGraph::new_empty(n);
+        graph.connect("0".to_string(), "1".to_string());
+        graph.connect("2".to_string(), "3".to_string());
+        graph.connect("2".to_string(), "4".to_string());
+        graph.connect("1".to_string(), "4".to_string());
+        graph.connect("0".to_string(), "3".to_string());
+        graph.dfs(|str: String| println!("{}", str));
     }
 }
