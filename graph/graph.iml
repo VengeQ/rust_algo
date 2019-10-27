@@ -11,6 +11,9 @@
       <sourceFolder url="file://$MODULE_DIR$/src/MGraph/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/MGraph/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/src/MGraph/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../graph\examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../graph\tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../graph\benches" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/src/MGraph/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
