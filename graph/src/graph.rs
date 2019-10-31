@@ -24,9 +24,11 @@ struct DirectedGraph<V: Clone + Hash + Eq + Debug + PartialOrd + Ord> {
     edges_memoize: bool,
 }
 
-impl<V: Clone + Hash + Eq + Debug + PartialOrd+ Ord> DirectedGraph<V> {
+impl<V: Clone + Hash + Eq + Debug + PartialOrd + Ord> DirectedGraph<V> {
     pub fn new(adj_list: HashMap<V, Vec<V>>) -> Self {
-        let vertices: HashSet<V> = adj_list.keys().map(|x| (*x).clone()).collect();
+        let vertices_1: HashSet<&V> = adj_list.keys().collect();
+        let vertices_2: HashSet<&V> = adj_list.iter().flat_map(|x| x.1.iter()).collect();
+        let vertices = (vertices_1.union(&vertices_2)).into_iter().map(|x| (*x).clone()).collect();
         let vertices_rc = Rc::new(vertices);
         let edges: Vec<(V, V)> = adj_list.iter().flat_map(
             |x| x.1.into_iter().map(
@@ -60,34 +62,88 @@ impl<V: Clone + Hash + Eq + Debug + PartialOrd+ Ord> DirectedGraph<V> {
         }
     }
 
+
     pub fn dfs<'a>(&self, start: V, process: &dyn Fn(&V) -> ()) {
+        let mut entry_time = HashMap::new();
+        let mut exit_time = HashMap::new();
+        let mut time = 0_usize;
         let mut discovered = VecDeque::new();
         let mut queue = VecDeque::new();
         queue.push_front(start.clone());
         discovered.push_front(start.clone());
+        time+=1;
+        entry_time.insert(start.clone(),time);
         process(&start);
         while !queue.is_empty() {
-            let current_vertex = queue.pop_front().unwrap_or_else(|| panic!("Queue is empty!")).clone();
-
-            print!("cv:{:?} -> ", current_vertex);
-            self.neighbours(&current_vertex).iter().for_each(|x| print!(" nv:{:?}", x));
-            println!();
-
+            let current_vertex = queue.front().unwrap_or_else(|| panic!("`Queue is empty!` This is absolutely unreachable err.")).clone();
             //Чтобы всегда в одном порядке возвращалось
-            let mut iterator:Vec<V> = self.neighbours(&current_vertex).into_iter().collect();
+            dbg!(&current_vertex);
+            let mut iterator: Vec<V> = self.neighbours(&current_vertex).into_iter().filter(|x|!discovered.contains(x)).collect();
+
             iterator.sort();
-            for n in &iterator {
-                if !discovered.contains(&n) {
-                    process(&n);
-                    discovered.push_front(n.clone());
-                    queue.push_front(n.clone());
+            dbg!(&iterator);
+            if iterator.is_empty() {
+                time += 1;
+                exit_time.insert(queue.pop_front().unwrap(), time);
+            } else {
+                for n in &iterator {
+                    if !discovered.contains(&n) {
+                        time += 1;
+                        entry_time.insert(n.clone(), time);
+                        discovered.push_front(n.clone());
+                        queue.push_front(n.clone());
+                        process(&n);
+                    }
                 }
             }
         }
+        println!("Exit times");
+        exit_time.iter().for_each(|x| println!("{:?}",x));
+        println!("Entry times");
+        entry_time.iter().for_each(|x| println!("{:?}",x));
     }
+
+    /*
+        pub fn dfs_rec<'a>(&self, start: V, time:i32,
+                           entry_time:HashMap< V,i32>,
+                           exit_time:HashMap<V,i32>,
+                           discovered:VecDeque<V>,
+                           queue:VecDeque<V>,
+                           process: &dyn Fn(&V) -> ()) {
+
+            let mut new_queue =  queue;
+            new_queue.push_front()
+
+
+            queue.push_front(start.clone());
+            discovered.push_front(start.clone());
+            process(&start);
+            while !queue.is_empty() {
+                let current_vertex = queue.pop_front().unwrap_or_else(|| panic!("Queue is empty!")).clone();
+                time += 1;
+                exit_time.insert(current_vertex.clone(), time);
+                //Чтобы всегда в одном порядке возвращалось
+                let mut iterator: Vec<V> = self.neighbours(&current_vertex).into_iter().collect();
+                iterator.sort();
+                for n in &iterator {
+                    if !discovered.contains(&n) {
+                        discovered.push_front(n.clone());
+                        queue.push_front(n.clone());
+                        process(&n);
+                        time += 1;
+                        entry_time.insert(n.to_owned(), time);
+                    }
+                }
+            }
+            println!("Exit times");
+            exit_time.iter().for_each(|x| println!("{:?}",x));
+            println!("Entry times");
+            entry_time.iter().for_each(|x| println!("{:?}",x));
+        }
+    */
 }
 
-impl<V: Clone + Hash + Eq + Debug + PartialOrd+ Ord> Graph<V> for DirectedGraph<V> {
+impl<V: Clone + Hash + Eq + Debug + PartialOrd + Ord> Graph<V> for DirectedGraph<V> {
     fn vertices(&self) -> &HashSet<V> {
         self.vertices.as_ref()
     }
@@ -206,7 +262,8 @@ mod tests {
         graph.add_edges(5, 3);
         graph.add_edges(5, 2);
         graph.add_edges(3, 6);
-        graph.edges().iter().for_each(|x| println!("{:?}", x));
+
         graph.dfs(1, &|x| println!("{:?}", x));
+        //graph.dfs(1, &|x| ());
     }
 }
